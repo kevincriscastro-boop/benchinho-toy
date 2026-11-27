@@ -5,7 +5,8 @@ Feito para descobrir o que trava o jogo de verdade: GPU, CPU, RAM cheia, pagina�
 
 <img src="icone.png" width="120" alt="ícone do Benchinho Toy">
 
-Visual escuro com destaques em vermelho e magenta (inspirado no estilo gamer "Strix", sem usar marcas).
+Visual escuro com duas paletas (inspiradas no estilo gamer, sem usar marcas): **TUF** (preto + amarelo/laranja, padrão)
+e **Strix** (preto + vermelho/roxo). Para trocar, crie um `config.json` na pasta do app com `{"paleta": "strix"}`.
 
 ## O que ele faz
 

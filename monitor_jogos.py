@@ -1131,7 +1131,7 @@ class Overlay:
 
     def _grafico_ft(self, d, gx0, gy0, gx1, gy1):
         cv = self.cv
-        self._arredondado(gx0, gy0, gx1, gy1, 6, fill="#15131e", outline="")
+        self._arredondado(gx0, gy0, gx1, gy1, 6, fill=TEMA["linha_alt"], outline="")
         cols, lim = d["ft"], d["ft_limite"]
         if not cols or lim is None:
             cv.create_text((gx0 + gx1) / 2, (gy0 + gy1) / 2, text="frametime: esperando quadros…",
@@ -1174,7 +1174,7 @@ class Overlay:
         self._arredondado(1, 1, W - 1, H - 1, 18, fill=self.FUNDO, outline=self.BORDA, width=1)
         for i in range(40):  # filete em degradê vermelho -> magenta no topo
             x = 18 + (W - 36) * i / 40
-            cv.create_line(x, 4, x + (W - 36) / 40 + 1, 4, fill=self._mistura(self.VERMELHO, self.MAGENTA, i / 39), width=2)
+            cv.create_line(x, 4, x + (W - 36) / 40 + 1, 4, fill=self._mistura(TEMA["destaque"], TEMA["destaque2"], i / 39), width=2)
 
         fps = d["fps"]
         cor = self._cor_fps(fps)
@@ -1330,33 +1330,45 @@ def montar_aba_consumo(aba, raiz, messagebox):
     import tkinter as tk
     from tkinter import ttk
 
-    c = Consumo()
-    resumo_txt = tk.StringVar(value="Coletando…")
-    ttk.Label(aba, textvariable=resumo_txt, font=("Consolas", 10)).pack(anchor="w", pady=(0, 6))
+    import customtkinter as ctk
 
-    colunas = [("nome", "Programa", 170, "w"), ("cpu", "CPU %", 60, "e"), ("ram", "RAM em uso", 90, "e"),
-               ("priv", "Reservada", 90, "e"), ("disco", "Disco L/G MB/s", 100, "e"), ("qtd", "Proc.", 45, "e")]
-    caixa = ttk.Frame(aba)
-    caixa.pack(fill="both", expand=True)
+    c = Consumo()
+    card = cartao(aba, "QUEM ESTÁ CONSUMINDO", TEMA["ambar"], "clique no título da coluna para ordenar")
+    card.pack(fill="both", expand=True, pady=(4, 0))
+    resumo_txt = tk.StringVar(value="Coletando…")
+    ctk.CTkLabel(card, textvariable=resumo_txt, font=ctk.CTkFont(family="Consolas", size=12), text_color=TEMA["texto"],
+                 anchor="w").pack(fill="x", padx=16, pady=(8, 6))
+
+    colunas = [("nome", "Programa", 130, "w"), ("cpu", "CPU %", 55, "e"), ("ram", "RAM em uso", 85, "e"),
+               ("priv", "Reservada", 85, "e"), ("disco", "Disco L/G", 85, "e"), ("qtd", "Proc.", 45, "e")]
+    caixa = ctk.CTkFrame(card, fg_color=TEMA["campo"], corner_radius=12)
+    caixa.pack(fill="both", expand=True, padx=16, pady=(0, 10))
     tv = ttk.Treeview(caixa, columns=[k for k, *_ in colunas], show="headings", selectmode="browse")
     for k, titulo, larg, anc in colunas:
         tv.heading(k, text=titulo, command=lambda k=k: ordenar(k))
         tv.column(k, width=larg, anchor=anc, stretch=(k == "nome"))
-    rol = ttk.Scrollbar(caixa, orient="vertical", command=tv.yview)
+    rol = ctk.CTkScrollbar(caixa, command=tv.yview, button_color=TEMA["trilho"], button_hover_color=TEMA["borda"])
     tv.config(yscrollcommand=rol.set)
-    tv.pack(side="left", fill="both", expand=True)
-    rol.pack(side="right", fill="y")
+    tv.pack(side="left", fill="both", expand=True, padx=(8, 0), pady=8)
+    rol.pack(side="right", fill="y", padx=4, pady=6)
     tv.tag_configure("protegido", foreground=TEMA["fraco"])
 
-    barra = ttk.Frame(aba)
-    barra.pack(fill="x", pady=(6, 0))
+    barra = ctk.CTkFrame(card, fg_color="transparent")
+    barra.pack(fill="x", padx=16, pady=(0, 6))
     status = tk.StringVar(value="Selecione um programa para fechar. Cinza = do Windows (protegido).")
     pausado = tk.BooleanVar(value=False)
-    icones = getattr(raiz, "_icones", {})
-    ttk.Button(barra, text="  Fechar programa", command=lambda: fechar_selecionado(), cursor="hand2",
-               **({"image": icones["fechar"], "compound": "left"} if "fechar" in icones else {})).pack(side="left")
-    ttk.Checkbutton(barra, text="Pausar atualização", variable=pausado).pack(side="left", padx=(10, 0))
-    ttk.Label(aba, textvariable=status, style="Apagado.TLabel", wraplength=520).pack(anchor="w", pady=(6, 0))
+    try:
+        icone_fechar = criar_icones().get("fechar")
+    except Exception:
+        icone_fechar = None
+    ctk.CTkButton(barra, text="Fechar programa", image=icone_fechar, compound="left", command=lambda: fechar_selecionado(),
+                  height=36, corner_radius=10, fg_color=TEMA["trilho"], hover_color=TEMA["selecao"], border_width=1,
+                  border_color=TEMA["destaque"], text_color=TEMA["texto"], font=fonte(13), cursor="hand2").pack(side="left")
+    ctk.CTkSwitch(barra, text="Pausar atualização", variable=pausado, onvalue=True, offvalue=False,
+                  progress_color=TEMA["destaque"], fg_color=TEMA["trilho"], button_color="#e9e7f2",
+                  text_color=TEMA["texto"], font=fonte(13)).pack(side="left", padx=(16, 0))
+    ctk.CTkLabel(card, textvariable=status, font=fonte(11), text_color=TEMA["fraco"], wraplength=540,
+                 justify="left", anchor="w").pack(fill="x", padx=16, pady=(0, 12))
 
     estado = {"ordem": "ram", "dados": [], "ocupado": False}
 
@@ -1453,17 +1465,58 @@ def montar_aba_consumo(aba, raiz, messagebox):
 
 # --------------------------------------------------------------------------- tema (mesma paleta do overlay)
 
-# estilo "Strix": preto arroxeado + vermelho/magenta de destaque; ciano/verde/âmbar ficam para os dados
-TEMA = {"fundo": "#0b0a10", "painel": "#13121b", "campo": "#0e0d15", "borda": "#3a3550", "trilho": "#262236",
-        "texto": "#f3f2f8", "apagado": "#b4b0c8", "fraco": "#8a86a3", "selecao": "#4a1238",
-        "vermelho": "#ff2846", "magenta": "#d946ef",
+# Paletas: "destaque" = cor principal (botão, abas, interruptores), "destaque2" = secundária (gravando, seletor).
+# Ciano/verde/âmbar/rosa são das faixas de FPS e dos dados, iguais nas duas.
+PALETAS = {
+    # preto arroxeado + vermelho/roxo
+    "strix": {"fundo": "#0b0a10", "painel": "#13121b", "campo": "#0e0d15", "borda": "#3a3550", "trilho": "#262236",
+              "texto": "#f3f2f8", "apagado": "#b4b0c8", "fraco": "#8a86a3", "selecao": "#33205e",
+              "cartao": "#1a1825", "borda_suave": "#2a2639", "linha_alt": "#16141f",
+              "destaque": "#ff2846", "destaque_hover": "#ff5a70", "destaque_escuro": "#c8102e",
+              "destaque2": "#8b5cf6", "destaque2_hover": "#a78bfa", "destaque2_escuro": "#6d28d9",
+              "aba": "#ff2846", "aba_hover": "#ff5a70", "texto_botao": "#ffffff", "icone": "D"},
+    # preto grafite + amarelo/laranja industrial
+    "tuf": {"fundo": "#0b0b0c", "painel": "#141416", "campo": "#0f0f11", "borda": "#3d3d42", "trilho": "#26262a",
+            "texto": "#f4f4f5", "apagado": "#bdbdc4", "fraco": "#8d8d95", "selecao": "#4a3a06",
+            "cartao": "#1b1b1e", "borda_suave": "#2c2c31", "linha_alt": "#161618",
+            "destaque": "#ffc400", "destaque_hover": "#ffd640", "destaque_escuro": "#d9a300",
+            "destaque2": "#ff7a1a", "destaque2_hover": "#ff9a4d", "destaque2_escuro": "#e0600a",
+            "aba": "#6b5400", "aba_hover": "#806500", "texto_botao": "#141414", "icone": "A"},
+}
+
+
+def _paleta_escolhida():
+    """config.json na pasta do app: {"paleta": "strix"} ou {"paleta": "tuf"}. Variável BENCHINHO_PALETA tem prioridade."""
+    nome = os.environ.get("BENCHINHO_PALETA")
+    if not nome:
+        try:
+            nome = json.loads((PASTA / "config.json").read_text(encoding="utf-8")).get("paleta")
+        except Exception:
+            nome = None
+    return nome if nome in PALETAS else "tuf"
+
+
+PALETA = _paleta_escolhida()
+TEMA = {**PALETAS[PALETA],
         "ciano": "#22d3ee", "violeta": "#a78bfa", "verde": "#4ade80", "ambar": "#fbbf24", "rosa": "#fb7185"}
 
 
-def criar_icones(raiz):
-    """Ícones pequenos desenhados na hora (sem arquivos extras)."""
-    from PIL import Image, ImageDraw, ImageTk
-    S, T = 64, 16
+def _arquivo_icone(ext):
+    """Ícone da paleta (icone_strix.ico / icone_tuf.png...), com o icone.* padrão de reserva."""
+    p = PASTA / f"icone_{PALETA}.{ext}"
+    return p if p.exists() else PASTA / f"icone.{ext}"
+
+
+def _colorref(hexa):
+    r, g, b = (int(hexa[i:i + 2], 16) for i in (1, 3, 5))
+    return (b << 16) | (g << 8) | r
+
+
+def criar_icones(tam=18):
+    """Ícones pequenos desenhados na hora (sem arquivos extras), prontos para os botões do CustomTkinter."""
+    import customtkinter as ctk
+    from PIL import Image, ImageDraw
+    S = 64
 
     def novo():
         im = Image.new("RGBA", (S, S), (0, 0, 0, 0))
@@ -1473,26 +1526,25 @@ def criar_icones(raiz):
         return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5)) + (255,)
 
     desenhos = {}
-    im, d = novo(); d.polygon([(14, 8), (56, 32), (14, 56)], fill=cor("#ffffff")); desenhos["play"] = im
-    im, d = novo(); d.rounded_rectangle((10, 10, 54, 54), 8, fill=cor("#ffffff")); desenhos["stop"] = im
+    im, d = novo(); d.polygon([(14, 8), (56, 32), (14, 56)], fill=cor(TEMA["texto_botao"])); desenhos["play"] = im
+    im, d = novo(); d.rounded_rectangle((10, 10, 54, 54), 8, fill=cor(TEMA["texto_botao"])); desenhos["stop"] = im
     im, d = novo()
     d.polygon([(12, 4), (40, 4), (54, 18), (54, 60), (12, 60)], fill=cor(TEMA["texto"]))
     for y in (26, 36, 46):
         d.line((20, y, 46, y), fill=cor(TEMA["trilho"]), width=5)
     desenhos["doc"] = im
     im, d = novo()
-    for x, h, c in ((8, 26, TEMA["ciano"]), (26, 44, TEMA["magenta"]), (44, 34, TEMA["vermelho"])):
+    for x, h, c in ((8, 26, TEMA["ciano"]), (26, 44, TEMA["destaque2"]), (44, 34, TEMA["destaque"])):
         d.rectangle((x, 58 - h, x + 12, 58), fill=cor(c))
     desenhos["grafico"] = im
     im, d = novo()
     d.polygon([(4, 14), (24, 14), (30, 20), (60, 20), (60, 54), (4, 54)], fill=cor(TEMA["ambar"]))
     desenhos["pasta"] = im
     im, d = novo()
-    d.line((14, 14, 50, 50), fill=cor(TEMA["vermelho"]), width=10)
-    d.line((50, 14, 14, 50), fill=cor(TEMA["vermelho"]), width=10)
+    d.line((14, 14, 50, 50), fill=cor(TEMA["destaque"]), width=10)
+    d.line((50, 14, 14, 50), fill=cor(TEMA["destaque"]), width=10)
     desenhos["fechar"] = im
-    raiz._icones = {k: ImageTk.PhotoImage(v.resize((T, T), Image.LANCZOS)) for k, v in desenhos.items()}
-    return raiz._icones
+    return {k: ctk.CTkImage(v, size=(tam, tam)) for k, v in desenhos.items()}
 
 
 def aplicar_tema(raiz):
@@ -1514,16 +1566,16 @@ def aplicar_tema(raiz):
     st.configure("TNotebook.Tab", background=T["fundo"], foreground=T["apagado"], padding=(18, 8), borderwidth=0,
                  font=("Bahnschrift SemiBold", 10), lightcolor=T["fundo"], bordercolor=T["fundo"])
     st.map("TNotebook.Tab", background=[("selected", T["painel"]), ("active", "#1a1826")],
-           foreground=[("selected", T["vermelho"]), ("active", T["texto"])],
+           foreground=[("selected", T["destaque"]), ("active", T["texto"])],
            lightcolor=[("selected", T["painel"])], bordercolor=[("selected", T["painel"])])
 
     st.configure("TButton", background=T["trilho"], foreground=T["texto"], bordercolor=T["borda"],
                  lightcolor=T["trilho"], darkcolor=T["trilho"], padding=(12, 6), font=("Bahnschrift", 10))
     st.map("TButton", background=[("disabled", T["campo"]), ("pressed", T["borda"]), ("active", "#332d48")],
            foreground=[("disabled", T["fraco"])], lightcolor=[("active", "#332d48")], darkcolor=[("active", "#332d48")],
-           bordercolor=[("active", T["magenta"])])
-    for nome, cor, escuro, claro, txt in (("Destaque", T["vermelho"], "#c8102e", "#ff5a70", "#ffffff"),
-                                          ("Gravando", T["magenta"], "#a21caf", "#e879f9", "#ffffff")):
+           bordercolor=[("active", T["destaque2"])])
+    for nome, cor, escuro, claro, txt in (("Destaque", T["destaque"], T["destaque_escuro"], T["destaque_hover"], T["texto_botao"]),
+                                          ("Gravando", T["destaque2"], T["destaque2_escuro"], T["destaque2_hover"], T["texto_botao"])):
         st.configure(f"{nome}.TButton", background=cor, foreground=txt, bordercolor=cor, lightcolor=cor, darkcolor=cor,
                      padding=(12, 10), font=("Bahnschrift SemiBold", 12))
         st.map(f"{nome}.TButton", background=[("disabled", T["trilho"]), ("pressed", escuro), ("active", claro)],
@@ -1533,14 +1585,14 @@ def aplicar_tema(raiz):
     st.configure("TCheckbutton", background=T["painel"], foreground=T["texto"], indicatorbackground=T["campo"],
                  indicatorforeground="#ffffff", upperbordercolor=T["apagado"], lowerbordercolor=T["apagado"],
                  indicatorsize=15, indicatormargin=(0, 0, 8, 0), padding=(0, 4))
-    st.map("TCheckbutton", background=[("active", T["painel"])], foreground=[("active", T["vermelho"])],
-           indicatorbackground=[("selected", T["vermelho"]), ("active", T["trilho"])],
-           upperbordercolor=[("selected", T["vermelho"])], lowerbordercolor=[("selected", T["vermelho"])])
+    st.map("TCheckbutton", background=[("active", T["painel"])], foreground=[("active", T["destaque"])],
+           indicatorbackground=[("selected", T["destaque"]), ("active", T["trilho"])],
+           upperbordercolor=[("selected", T["destaque"])], lowerbordercolor=[("selected", T["destaque"])])
 
     st.configure("TEntry", fieldbackground=T["campo"], foreground=T["texto"], padding=7, bordercolor=T["borda"])
-    st.map("TEntry", bordercolor=[("focus", T["vermelho"])], lightcolor=[("focus", T["vermelho"])])
+    st.map("TEntry", bordercolor=[("focus", T["destaque"])], lightcolor=[("focus", T["destaque"])])
     st.configure("TCombobox", fieldbackground=T["campo"], background=T["trilho"], foreground=T["texto"],
-                 arrowcolor=T["magenta"], padding=4, bordercolor=T["borda"])
+                 arrowcolor=T["destaque2"], padding=4, bordercolor=T["borda"])
     st.map("TCombobox", fieldbackground=[("readonly", T["campo"])], foreground=[("readonly", T["texto"])],
            selectbackground=[("readonly", T["campo"])], selectforeground=[("readonly", T["texto"])],
            background=[("active", T["borda"])])
@@ -1555,10 +1607,7 @@ def aplicar_tema(raiz):
     st.map("Treeview", background=[("selected", T["selecao"])], foreground=[("selected", "#ffffff")])
     st.configure("Treeview.Heading", background=T["fundo"], foreground=T["apagado"], bordercolor=T["borda"],
                  lightcolor=T["fundo"], darkcolor=T["fundo"], font=("Bahnschrift SemiBold", 9), padding=(6, 5))
-    st.map("Treeview.Heading", background=[("active", T["trilho"])], foreground=[("active", T["vermelho"])])
-    for nome in ("Vermelho", "Magenta", "Ciano", "Ambar"):
-        st.configure(f"Secao{nome}.TLabel", foreground=T[nome.lower()],
-                     font=("Bahnschrift SemiBold", 10))
+    st.map("Treeview.Heading", background=[("active", T["trilho"])], foreground=[("active", T["destaque"])])
 
     st.configure("Vertical.TScrollbar", background=T["trilho"], troughcolor=T["campo"], bordercolor=T["campo"],
                  lightcolor=T["trilho"], darkcolor=T["trilho"], arrowcolor=T["apagado"], gripcount=0)
@@ -1571,101 +1620,131 @@ def barra_de_titulo_escura(janela):
         janela.update_idletasks()
         hwnd = ctypes.windll.user32.GetParent(janela.winfo_id())
         dwm = ctypes.windll.dwmapi
-        for atributo, valor in ((20, 1), (35, 0x00100A0B), (34, 0x004628FF)):  # modo escuro, cor da barra, borda vermelha
+        for atributo, valor in ((20, 1), (35, _colorref(TEMA["fundo"])), (34, _colorref(TEMA["destaque"]))):
+            # modo escuro, cor da barra de título, cor da borda
             v = ctypes.c_int(valor)
             dwm.DwmSetWindowAttribute(hwnd, atributo, ctypes.byref(v), ctypes.sizeof(v))
     except Exception:
         pass
 
 
+def fonte(tam, negrito=False):
+    import customtkinter as ctk
+    return ctk.CTkFont(family="Bahnschrift SemiBold" if negrito else "Bahnschrift", size=tam)
+
+
+def cartao(pai, titulo=None, cor=None, dica=""):
+    """Painel arredondado com título colorido; devolve o frame interno."""
+    import customtkinter as ctk
+    c = ctk.CTkFrame(pai, fg_color=TEMA["cartao"], corner_radius=16, border_width=1, border_color=TEMA["borda_suave"])
+    if titulo:
+        topo = ctk.CTkFrame(c, fg_color="transparent")
+        topo.pack(fill="x", padx=16, pady=(12, 0))
+        ctk.CTkFrame(topo, width=4, height=16, corner_radius=2, fg_color=cor).pack(side="left", padx=(0, 8))
+        ctk.CTkLabel(topo, text=titulo, font=fonte(12, True), text_color=cor).pack(side="left")
+        if dica:
+            ctk.CTkLabel(topo, text=dica, font=fonte(11), text_color=TEMA["fraco"]).pack(side="left", padx=(10, 0))
+    return c
+
+
 def abrir_janela():
     import tkinter as tk
-    from tkinter import ttk, messagebox
+    from tkinter import messagebox
+    import customtkinter as ctk
 
     try:  # ícone próprio na barra de tarefas (senão o Windows mostra o do Python)
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Kevin.MonitorDeJogos")
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Kevin.BenchinhoToy")
     except Exception:
         pass
+    ctk.set_appearance_mode("dark")
     g = Gravador()
-    raiz = tk.Tk()
+    raiz = ctk.CTk(fg_color=TEMA["fundo"])
     raiz.title("Benchinho Toy")
-    raiz.geometry("600x780")
-    raiz.minsize(560, 640)
-    raiz.attributes("-topmost", False)
-    if (PASTA / "icone.ico").exists():
+    escala = max(1.0, ctypes.windll.user32.GetDpiForSystem() / 96) if hasattr(ctypes.windll.user32, "GetDpiForSystem") else 1.0
+    altura = int(min(960, raiz.winfo_screenheight() / escala - 90))
+    raiz.geometry(f"640x{altura}")
+    raiz.minsize(580, 620)
+    if _arquivo_icone("ico").exists():
         try:
-            raiz.iconbitmap(default=str(PASTA / "icone.ico"))
+            raiz.iconbitmap(str(_arquivo_icone("ico")))
         except Exception:
             pass
-    aplicar_tema(raiz)
-    barra_de_titulo_escura(raiz)
+    aplicar_tema(raiz)  # estilo da tabela (Treeview) da aba Consumo
+    raiz.after(250, lambda: barra_de_titulo_escura(raiz))
     try:
-        ic = criar_icones(raiz)
+        ic = criar_icones()
     except Exception:
         ic = {}
 
-    def com_icone(nome_ic):
-        return {"image": ic[nome_ic], "compound": "left"} if nome_ic in ic else {}
-
-    # cabeçalho: ícone + título + filete em degradê vermelho -> magenta
-    cab = tk.Canvas(raiz, height=64, bg=TEMA["fundo"], highlightthickness=0)
-    cab.pack(fill="x")
+    # ----- cabeçalho
+    cab = ctk.CTkFrame(raiz, fg_color="transparent")
+    cab.pack(fill="x", padx=20, pady=(14, 4))
     try:
-        from PIL import Image, ImageTk
-        raiz._icone_cab = ImageTk.PhotoImage(Image.open(PASTA / "icone.png").resize((36, 36), Image.LANCZOS))
-        cab.create_image(16, 32, image=raiz._icone_cab, anchor="w")
+        from PIL import Image
+        logo = ctk.CTkImage(Image.open(_arquivo_icone("png")), size=(42, 42))
+        ctk.CTkLabel(cab, image=logo, text="").pack(side="left", padx=(0, 12))
     except Exception:
         pass
-    cab.create_text(62, 25, text="BENCHINHO TOY", anchor="w", fill=TEMA["texto"], font=("Bahnschrift SemiBold", 17))
-    cab.create_text(62, 46, text="FPS  ·  frametime  ·  recursos", anchor="w", fill=TEMA["apagado"], font=("Bahnschrift", 9))
-    for i in range(40):  # filete com corte diagonal no fim
-        x = 62 + 190 * i / 40
-        cab.create_line(x, 59, x + 6, 59, width=3, fill=Overlay._mistura(TEMA["vermelho"], TEMA["magenta"], i / 39))
-    cab.create_polygon(258, 61, 264, 61, 272, 53, 266, 53, fill=TEMA["magenta"], outline="")
-    cab.create_polygon(270, 61, 276, 61, 284, 53, 278, 53, fill=TEMA["vermelho"], outline="")
+    titulos = ctk.CTkFrame(cab, fg_color="transparent")
+    titulos.pack(side="left")
+    ctk.CTkLabel(titulos, text="BENCHINHO TOY", font=fonte(20, True), text_color=TEMA["texto"], height=24).pack(anchor="w")
+    ctk.CTkLabel(titulos, text="FPS  ·  frametime  ·  recursos", font=fonte(11), text_color=TEMA["apagado"],
+                 height=16).pack(anchor="w")
+    filete = tk.Canvas(titulos, width=230, height=8, bg=TEMA["fundo"], highlightthickness=0)
+    filete.pack(anchor="w", pady=(3, 0))
+    for i in range(46):
+        x = 200 * i / 46
+        filete.create_line(x, 4, x + 6, 4, width=3, fill=Overlay._mistura(TEMA["destaque"], TEMA["destaque2"], i / 45),
+                           capstyle="round")
+    filete.create_polygon(206, 7, 211, 7, 217, 1, 212, 1, fill=TEMA["destaque2"], outline="")
+    filete.create_polygon(217, 7, 222, 7, 228, 1, 223, 1, fill=TEMA["destaque"], outline="")
 
-    abas = ttk.Notebook(raiz)
-    abas.pack(fill="both", expand=True)
-    quadro = ttk.Frame(abas, padding=16)
-    aba_consumo = ttk.Frame(abas, padding=16)
-    abas.add(quadro, text="  Gravação  ")
-    abas.add(aba_consumo, text="  Consumo  ")
+    # ----- abas
+    abas = ctk.CTkTabview(raiz, fg_color=TEMA["painel"], corner_radius=18, border_width=1, border_color=TEMA["borda_suave"],
+                          segmented_button_fg_color=TEMA["campo"], segmented_button_selected_color=TEMA["aba"],
+                          segmented_button_selected_hover_color=TEMA["aba_hover"], segmented_button_unselected_color=TEMA["campo"],
+                          segmented_button_unselected_hover_color=TEMA["trilho"], text_color=TEMA["texto"], anchor="w")
+    abas.pack(fill="both", expand=True, padx=14, pady=(2, 14))
+    abas._segmented_button.configure(font=fonte(13, True), height=34, corner_radius=10)
+    quadro = abas.add("  Gravação  ")
+    aba_consumo = abas.add("  Consumo  ")
     montar_aba_consumo(aba_consumo, raiz, messagebox)
 
-    def secao(pai, texto, estilo, dica="", **pack):
-        linha = ttk.Frame(pai)
-        linha.pack(fill="x", **pack)
-        ttk.Label(linha, text="▍" + texto, style=estilo).pack(side="left")
-        if dica:
-            ttk.Label(linha, text="  " + dica, style="Apagado.TLabel", font=("Bahnschrift", 9)).pack(side="left", pady=(1, 0))
-
-    secao(quadro, "NOME DO TESTE", "SecaoVermelho.TLabel", "ex.: Tekken 8 - FORESEE")
+    # ----- cartão: gravação
+    c1 = cartao(quadro, "NOME DO TESTE", TEMA["destaque"])
+    c1.pack(fill="x", pady=(4, 10))
     nome = tk.StringVar(value="")
-    ttk.Entry(quadro, textvariable=nome, font=("Bahnschrift", 11)).pack(fill="x", pady=(4, 12))
-
+    ctk.CTkEntry(c1, textvariable=nome, placeholder_text="ex.: Tekken 8 - FORESEE", height=38, corner_radius=10,
+                 fg_color=TEMA["campo"], border_color=TEMA["borda"], border_width=1, text_color=TEMA["texto"],
+                 placeholder_text_color=TEMA["fraco"], font=fonte(14)).pack(fill="x", padx=16, pady=(10, 6))
     fps_txt = tk.StringVar(value="— FPS")
-    fps_lbl = ttk.Label(quadro, textvariable=fps_txt, style="Grande.TLabel")
-    fps_lbl.pack(anchor="w")
+    fps_lbl = ctk.CTkLabel(c1, textvariable=fps_txt, font=fonte(42, True), text_color=TEMA["fraco"], height=52, anchor="w")
+    fps_lbl.pack(fill="x", padx=16)
     info_txt = tk.StringVar(value="Parado. Ctrl+Alt+F10 inicia/para de dentro do jogo.")
-    ttk.Label(quadro, textvariable=info_txt, justify="left", style="Mono.TLabel").pack(anchor="w", pady=(2, 12))
+    ctk.CTkLabel(c1, textvariable=info_txt, font=ctk.CTkFont(family="Consolas", size=12), text_color=TEMA["apagado"],
+                 justify="left", anchor="w").pack(fill="x", padx=16, pady=(0, 10))
+    bt = ctk.CTkButton(c1, text="Iniciar gravação", image=ic.get("play"), compound="left", height=48, corner_radius=12,
+                       fg_color=TEMA["destaque"], hover_color=TEMA["destaque_hover"], text_color=TEMA["texto_botao"], font=fonte(16, True),
+                       cursor="hand2")
+    bt.pack(fill="x", padx=16, pady=(0, 16))
 
-    bt = ttk.Button(quadro, text="  Iniciar gravação", style="Destaque.TButton", cursor="hand2", **com_icone("play"))
-    bt.pack(fill="x")
-    secao(quadro, "OPÇÕES E OVERLAY", "SecaoMagenta.TLabel", pady=(14, 2))
+    # ----- cartão: opções e overlay
+    c2 = cartao(quadro, "OPÇÕES E OVERLAY", TEMA["destaque2"])
+    c2.pack(fill="x", pady=(0, 10))
+
+    def interruptor(pai, texto, var, comando=None):
+        s = ctk.CTkSwitch(pai, text=texto, variable=var, command=comando, onvalue=True, offvalue=False,
+                          progress_color=TEMA["destaque"], fg_color=TEMA["trilho"], button_color="#e9e7f2",
+                          button_hover_color="#ffffff", text_color=TEMA["texto"], font=fonte(13), switch_width=40,
+                          switch_height=20)
+        return s
+
     abrir_sozinho = tk.BooleanVar(value=False)
-    ttk.Checkbutton(quadro, text="Abrir o relatório sozinho ao parar (rouba o foco do jogo)",
-                    variable=abrir_sozinho).pack(anchor="w")
     topo = tk.BooleanVar(value=False)
-    ttk.Checkbutton(quadro, text="Janela sempre por cima", variable=topo,
-                    command=lambda: raiz.attributes("-topmost", topo.get())).pack(anchor="w")
-
-    # overlay por cima do jogo
-    linha_ov = ttk.Frame(quadro)
-    linha_ov.pack(fill="x", pady=(2, 0))
+    ov_ligado = tk.BooleanVar(value=False)
     canto = tk.StringVar(value="Superior esquerdo")
     tamanho = tk.StringVar(value="Completo")
     overlay = Overlay(raiz, AoVivo(g.gpu), g, canto, tamanho)
-    ov_ligado = tk.BooleanVar(value=False)
 
     def alternar_overlay(_via_atalho=False):
         if _via_atalho:
@@ -1673,36 +1752,54 @@ def abrir_janela():
         if ov_ligado.get() != overlay.visivel:
             overlay.alternar()
 
-    ttk.Checkbutton(linha_ov, text="Overlay no jogo", variable=ov_ligado,
-                    command=alternar_overlay).pack(side="left")
-    ttk.Combobox(linha_ov, textvariable=canto, state="readonly", width=16,
-                 values=["Superior esquerdo", "Superior direito", "Inferior esquerdo", "Inferior direito"]).pack(side="left", padx=(8, 4))
-    ttk.Combobox(linha_ov, textvariable=tamanho, state="readonly", width=10,
-                 values=["Compacto", "Completo"]).pack(side="left", padx=(0, 6))
+    interruptor(c2, "Abrir o relatório sozinho ao parar  (rouba o foco do jogo)", abrir_sozinho).pack(anchor="w", padx=16, pady=(12, 4))
+    interruptor(c2, "Janela sempre por cima", topo,
+                lambda: raiz.attributes("-topmost", topo.get())).pack(anchor="w", padx=16, pady=4)
+    linha_ov = ctk.CTkFrame(c2, fg_color="transparent")
+    linha_ov.pack(fill="x", padx=16, pady=(4, 2))
+    interruptor(linha_ov, "Overlay no jogo", ov_ligado, alternar_overlay).pack(side="left")
     ov_atalho_txt = tk.StringVar(value="")
-    ttk.Label(linha_ov, textvariable=ov_atalho_txt, style="Apagado.TLabel").pack(side="left")
+    ctk.CTkLabel(linha_ov, textvariable=ov_atalho_txt, font=fonte(11), text_color=TEMA["fraco"]).pack(side="left", padx=8)
+    linha_cfg = ctk.CTkFrame(c2, fg_color="transparent")
+    linha_cfg.pack(fill="x", padx=16, pady=(6, 14))
+    ctk.CTkOptionMenu(linha_cfg, variable=canto, values=["Superior esquerdo", "Superior direito", "Inferior esquerdo",
+                                                          "Inferior direito"],
+                      width=180, height=32, corner_radius=10, fg_color=TEMA["campo"], button_color=TEMA["trilho"],
+                      button_hover_color=TEMA["borda"], text_color=TEMA["texto"], font=fonte(13),
+                      dropdown_fg_color=TEMA["painel"], dropdown_hover_color=TEMA["selecao"], dropdown_font=fonte(13),
+                      dropdown_text_color=TEMA["texto"]).pack(side="left")
+    ctk.CTkSegmentedButton(linha_cfg, variable=tamanho, values=["Compacto", "Completo"], height=32, corner_radius=10,
+                           fg_color=TEMA["campo"], selected_color=TEMA["destaque2"], selected_hover_color=TEMA["destaque2_hover"],
+                           unselected_color=TEMA["campo"], unselected_hover_color=TEMA["trilho"],
+                           text_color=TEMA["texto"], font=fonte(13)).pack(side="left", padx=10)
 
-    # lista das sessões: clique duplo abre o relatório
-    secao(quadro, "SESSÕES GRAVADAS", "SecaoCiano.TLabel", "clique duplo abre o relatório", pady=(14, 4))
-    caixa = ttk.Frame(quadro)
-    caixa.pack(fill="both", expand=True)
-    lista = tk.Listbox(caixa, height=9, font=("Consolas", 10), activestyle="none", bg=TEMA["campo"], fg=TEMA["texto"],
-                       selectbackground=TEMA["selecao"], selectforeground="#ffffff", highlightthickness=1,
-                       highlightbackground=TEMA["borda"], highlightcolor=TEMA["magenta"], bd=0, relief="flat")
-    rolagem = ttk.Scrollbar(caixa, orient="vertical", command=lista.yview)
+    # ----- cartão: sessões
+    c3 = cartao(quadro, "SESSÕES GRAVADAS", TEMA["ciano"], "clique duplo abre o relatório")
+    c3.pack(fill="both", expand=True)
+    caixa = ctk.CTkFrame(c3, fg_color=TEMA["campo"], corner_radius=12)
+    caixa.pack(fill="both", expand=True, padx=16, pady=(10, 8))
+    lista = tk.Listbox(caixa, height=6, font=("Consolas", 11), activestyle="none", bg=TEMA["campo"], fg=TEMA["texto"],
+                       selectbackground=TEMA["selecao"], selectforeground="#ffffff", highlightthickness=0, bd=0,
+                       relief="flat")
+    rolagem = ctk.CTkScrollbar(caixa, command=lista.yview, button_color=TEMA["trilho"], button_hover_color=TEMA["borda"])
     lista.config(yscrollcommand=rolagem.set)
-    lista.pack(side="left", fill="both", expand=True)
-    rolagem.pack(side="right", fill="y")
+    lista.pack(side="left", fill="both", expand=True, padx=(10, 0), pady=8)
+    rolagem.pack(side="right", fill="y", padx=4, pady=6)
     pastas_lista = []
 
-    acoes = ttk.Frame(quadro)
-    acoes.pack(fill="x", pady=(6, 0))
+    acoes = ctk.CTkFrame(c3, fg_color="transparent")
+    acoes.pack(side="bottom", fill="x", padx=16, pady=(0, 14), before=caixa)  # botões sempre visíveis; a lista encolhe
+
+    def botao(pai, texto, icone, comando, **kw):
+        return ctk.CTkButton(pai, text=texto, image=ic.get(icone), compound="left", command=comando, height=36,
+                             corner_radius=10, fg_color=TEMA["trilho"], hover_color=TEMA["borda"], text_color=TEMA["texto"],
+                             font=fonte(13), cursor="hand2", **kw)
 
     def _abrir(caminho):
         if caminho and caminho.exists():
             webbrowser.open(caminho.as_uri())
         else:
-            messagebox.showinfo("Monitor de Jogos", "Relatório não encontrado.")
+            messagebox.showinfo("Benchinho Toy", "Relatório não encontrado.")
 
     def atualizar_lista():
         lista.delete(0, "end")
@@ -1714,11 +1811,11 @@ def abrir_janela():
                 continue
             quando = r.get("inicio", "")[5:16].replace("T", " ").replace("-", "/")
             fps = f"{r['fps_medio']:.0f} FPS" if r.get("fps_medio") else "sem FPS"
-            lista.insert("end", f" {quando}  {r.get('nome', '')[:28]:<28} {fps:>8}")
+            lista.insert("end", f" {quando}  {r.get('nome', '')[:26]:<26} {fps:>8}")
             i = lista.size() - 1
             f = r.get("fps_medio")
             lista.itemconfig(i, fg=overlay._cor_fps(f) if f else TEMA["fraco"],
-                             bg=TEMA["campo"] if i % 2 == 0 else "#15131e")
+                             bg=TEMA["campo"] if i % 2 == 0 else TEMA["linha_alt"])
             pastas_lista.append(p.parent)
 
     def abrir_selecionada(_evento=None):
@@ -1728,17 +1825,29 @@ def abrir_janela():
 
     lista.bind("<Double-Button-1>", abrir_selecionada)
     lista.bind("<Return>", abrir_selecionada)
-    ttk.Button(acoes, text="  Abrir selecionada", command=abrir_selecionada, cursor="hand2",
-               **com_icone("doc")).pack(side="left", fill="x", expand=True)
-    ttk.Button(acoes, text="  Comparativo", command=lambda: _abrir(SESSOES / "comparativo.html"), cursor="hand2",
-               **com_icone("grafico")).pack(side="left", padx=(6, 0))
-    ttk.Button(acoes, text="  Pasta", command=lambda: os.startfile(SESSOES), cursor="hand2",
-               **com_icone("pasta")).pack(side="left", padx=(6, 0))
+    botao(acoes, "Abrir selecionada", "doc", abrir_selecionada).pack(side="left", fill="x", expand=True)
+    botao(acoes, "Comparativo", "grafico", lambda: _abrir(SESSOES / "comparativo.html"), width=130).pack(side="left", padx=(8, 0))
+    botao(acoes, "Pasta", "pasta", lambda: os.startfile(SESSOES), width=90).pack(side="left", padx=(8, 0))
+
+    atalho_txt = tk.StringVar(value="Atalho: registrando…")
+    ctk.CTkLabel(quadro, textvariable=atalho_txt, font=fonte(11), text_color=TEMA["fraco"],
+                 height=20).pack(side="bottom", anchor="w", padx=6, pady=(6, 0), before=c1)
+
+    def estilo_botao(modo):
+        if modo == "parado":
+            bt.configure(text="Iniciar gravação", image=ic.get("play"), state="normal", fg_color=TEMA["destaque"],
+                         hover_color=TEMA["destaque_hover"])
+        elif modo == "gravando":
+            bt.configure(text="Parar e gerar relatório", image=ic.get("stop"), state="normal", fg_color=TEMA["destaque2"],
+                         hover_color=TEMA["destaque2_hover"])
+        else:
+            bt.configure(text="Gerando relatório…  (pode continuar jogando)", image=None, state="disabled",
+                         fg_color=TEMA["trilho"], text_color_disabled=TEMA["apagado"])
 
     def terminou(rel, erro):
-        bt.config(text="  Iniciar gravação", state="normal", style="Destaque.TButton", **com_icone("play"))
+        estilo_botao("parado")
         fps_txt.set("— FPS")
-        fps_lbl.configure(foreground=TEMA["apagado"])
+        fps_lbl.configure(text_color=TEMA["fraco"])
         atualizar_lista()
         if erro:
             info_txt.set(f"Erro ao gerar o relatório:\n{erro}\nOs dados brutos estão na pasta da sessão.")
@@ -1783,26 +1892,23 @@ def abrir_janela():
             pass
 
     def alternar():
-        if str(bt["state"]) == "disabled":
+        if bt.cget("state") == "disabled":
             return  # ainda gerando o relatório anterior
         if not g.ativo:
             g.iniciar(nome.get())
-            bt.config(text="  Parar e gerar relatório", style="Gravando.TButton", **com_icone("stop"))
+            estilo_botao("gravando")
             bipe("inicio")
         else:
-            bt.config(text="…  gerando relatório (pode continuar jogando)", state="disabled", style="Destaque.TButton",
-                      image="")
+            estilo_botao("gerando")
             bipe("fim")
             threading.Thread(target=parar_em_segundo_plano, daemon=True).start()
 
-    bt.config(command=alternar)
+    bt.configure(command=alternar)
     atualizar_lista()
 
     # o atalho roda em outra thread: ele só deixa recados nesta fila, e a janela os pega no tick()
     import queue
     recados = queue.Queue()
-    atalho_txt = tk.StringVar(value="Atalho: registrando…")
-    ttk.Label(quadro, textvariable=atalho_txt, style="Apagado.TLabel").pack(anchor="w", pady=(8, 0))
 
     def tick():
         while True:
@@ -1821,15 +1927,15 @@ def abrir_janela():
             elif tipo == "overlay":
                 alternar_overlay(_via_atalho=True)
             elif tipo == "overlay_registrado":
-                ov_atalho_txt.set(f"({valor})")
+                ov_atalho_txt.set(valor)
         v = g.ao_vivo if g.ativo else {}
         if g.ativo and v:
             gp = v.get("gpu", {})
             fora = v.get("foco") == 0
             fps_txt.set(f"{v['fps'] if v.get('fps') is not None else '—'} FPS" + ("  ‖ fora de foco" if fora else ""))
-            fps_lbl.configure(foreground=TEMA["ambar"] if fora else overlay._cor_fps(v.get("fps")))
+            fps_lbl.configure(text_color=TEMA["ambar"] if fora else overlay._cor_fps(v.get("fps")))
             linhas = [f"● GRAVANDO  {int(v['t']//60)}:{int(v['t']%60):02d}   jogo: {v.get('jogo') or 'detectando…'}",
-                      ("⏸ jogo fora de foco: este trecho não entra nas estatísticas" if fora else "▶ jogo em foco"),
+                      ("‖ jogo fora de foco: este trecho não entra nas estatísticas" if fora else "▶ jogo em foco"),
                       f"CPU {v['cpu']:>5.0f}%   RAM {v['ram']:>3.0f}%",
                       f"GPU {gp.get('gpu_uso') or 0:>5.0f}%   {gp.get('gpu_temp') or 0:.0f} °C   {gp.get('gpu_watts') or 0:.0f} W"]
             for d, (ler, grav, ativo) in v.get("discos", {}).items():
@@ -1862,7 +1968,7 @@ def abrir_janela():
     threading.Thread(target=escutar_atalho, daemon=True).start()
 
     def fechar():
-        if g.ativo and not messagebox.askyesno("Monitor de Jogos", "Está gravando. Parar e gerar o relatório antes de sair?"):
+        if g.ativo and not messagebox.askyesno("Benchinho Toy", "Está gravando. Parar e gerar o relatório antes de sair?"):
             return
         overlay.fechar()
         g.fechar()

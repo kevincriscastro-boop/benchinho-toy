@@ -7,6 +7,9 @@ bin/
 # atalho do Windows (tem caminhos da máquina)
 *.lnk
 
+# preferência local de paleta (o padrão sem arquivo já é TUF)
+config.json
+
 # opções de ícone geradas por gerar_icone.py (o escolhido é o icone.png)
 icone_?.png
 previa_icones.png

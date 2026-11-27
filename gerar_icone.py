@@ -2,6 +2,7 @@
 
     python gerar_icone.py            -> gera as 3 opções (icone_A/B/C.png) + previa_icones.png
     python gerar_icone.py B          -> instala a opção B como icone.ico / icone.png
+    python gerar_icone.py paletas    -> gera icone_strix.* (D) e icone_tuf.* (A), usados conforme a paleta
 
 Estilo "industrial gamer": preto, amarelo e cantos chanfrados (lembra o visual TUF sem usar o logo).
 """
@@ -97,7 +98,7 @@ def opcao_c():
     return img
 
 
-VERMELHO, MAGENTA = (255, 40, 70), (217, 70, 239)
+VERMELHO, MAGENTA = (255, 40, 70), (139, 92, 246)  # "MAGENTA" virou roxo a pedido do Kevin
 
 
 def opcao_d():
@@ -151,14 +152,25 @@ def previa():
     fundo.save(PASTA / "previa_icones.png")
 
 
-def instalar(k):
+TAMANHOS = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
+
+
+def instalar(k, nome="icone"):
     img = OPCOES[k]()
-    img.save(PASTA / "icone.png")
-    img.save(PASTA / "icone.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+    img.save(PASTA / f"{nome}.png")
+    img.save(PASTA / f"{nome}.ico", sizes=TAMANHOS)
+
+
+def paletas():
+    """Um ícone para cada paleta do app: Strix (D) e TUF (A)."""
+    instalar("D", "icone_strix")
+    instalar("A", "icone_tuf")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 1 and sys.argv[1].lower() == "paletas":
+        paletas()
+    elif len(sys.argv) > 1:
         instalar(sys.argv[1].upper())
     else:
         previa()
