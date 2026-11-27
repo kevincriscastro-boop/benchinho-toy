@@ -1040,7 +1040,8 @@ class Overlay:
 
     # paleta "neon noturno"
     CHAVE = "#010203"  # cor que vira transparente (cantos arredondados)
-    FUNDO, BORDA, TRILHO = "#0b1220", "#22304d", "#16213a"
+    FUNDO, BORDA, TRILHO = "#0e0d15", "#3a3550", "#221f30"
+    VERMELHO, MAGENTA = "#ff2846", "#d946ef"
     TEXTO, APAGADO = "#e2e8f0", "#7c8aa5"
     CIANO, VIOLETA, VERDE, AMBAR, ROSA = "#22d3ee", "#a78bfa", "#4ade80", "#fbbf24", "#fb7185"
     AZUL = "#60a5fa"
@@ -1130,7 +1131,7 @@ class Overlay:
 
     def _grafico_ft(self, d, gx0, gy0, gx1, gy1):
         cv = self.cv
-        self._arredondado(gx0, gy0, gx1, gy1, 6, fill="#0f1a2e", outline="")
+        self._arredondado(gx0, gy0, gx1, gy1, 6, fill="#15131e", outline="")
         cols, lim = d["ft"], d["ft_limite"]
         if not cols or lim is None:
             cv.create_text((gx0 + gx1) / 2, (gy0 + gy1) / 2, text="frametime: esperando quadros…",
@@ -1171,9 +1172,9 @@ class Overlay:
         cv, W, H = self.cv, self.W, self.H
         cv.delete("all")
         self._arredondado(1, 1, W - 1, H - 1, 18, fill=self.FUNDO, outline=self.BORDA, width=1)
-        for i in range(40):  # filete em degradê ciano -> violeta no topo
+        for i in range(40):  # filete em degradê vermelho -> magenta no topo
             x = 18 + (W - 36) * i / 40
-            cv.create_line(x, 4, x + (W - 36) / 40 + 1, 4, fill=self._mistura(self.CIANO, self.VIOLETA, i / 39), width=2)
+            cv.create_line(x, 4, x + (W - 36) / 40 + 1, 4, fill=self._mistura(self.VERMELHO, self.MAGENTA, i / 39), width=2)
 
         fps = d["fps"]
         cor = self._cor_fps(fps)
@@ -1351,7 +1352,9 @@ def montar_aba_consumo(aba, raiz, messagebox):
     barra.pack(fill="x", pady=(6, 0))
     status = tk.StringVar(value="Selecione um programa para fechar. Cinza = do Windows (protegido).")
     pausado = tk.BooleanVar(value=False)
-    ttk.Button(barra, text="✖ Fechar programa", command=lambda: fechar_selecionado()).pack(side="left")
+    icones = getattr(raiz, "_icones", {})
+    ttk.Button(barra, text="  Fechar programa", command=lambda: fechar_selecionado(), cursor="hand2",
+               **({"image": icones["fechar"], "compound": "left"} if "fechar" in icones else {})).pack(side="left")
     ttk.Checkbutton(barra, text="Pausar atualização", variable=pausado).pack(side="left", padx=(10, 0))
     ttk.Label(aba, textvariable=status, style="Apagado.TLabel", wraplength=520).pack(anchor="w", pady=(6, 0))
 
@@ -1450,9 +1453,46 @@ def montar_aba_consumo(aba, raiz, messagebox):
 
 # --------------------------------------------------------------------------- tema (mesma paleta do overlay)
 
-TEMA = {"fundo": "#0b1220", "painel": "#111a2e", "campo": "#0d1526", "borda": "#22304d", "trilho": "#1b2742",
-        "texto": "#e2e8f0", "apagado": "#7c8aa5", "fraco": "#5d6b86", "selecao": "#164e63",
+# estilo "Strix": preto arroxeado + vermelho/magenta de destaque; ciano/verde/âmbar ficam para os dados
+TEMA = {"fundo": "#0b0a10", "painel": "#13121b", "campo": "#0e0d15", "borda": "#3a3550", "trilho": "#262236",
+        "texto": "#f3f2f8", "apagado": "#b4b0c8", "fraco": "#8a86a3", "selecao": "#4a1238",
+        "vermelho": "#ff2846", "magenta": "#d946ef",
         "ciano": "#22d3ee", "violeta": "#a78bfa", "verde": "#4ade80", "ambar": "#fbbf24", "rosa": "#fb7185"}
+
+
+def criar_icones(raiz):
+    """Ícones pequenos desenhados na hora (sem arquivos extras)."""
+    from PIL import Image, ImageDraw, ImageTk
+    S, T = 64, 16
+
+    def novo():
+        im = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+        return im, ImageDraw.Draw(im)
+
+    def cor(h):
+        return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5)) + (255,)
+
+    desenhos = {}
+    im, d = novo(); d.polygon([(14, 8), (56, 32), (14, 56)], fill=cor("#ffffff")); desenhos["play"] = im
+    im, d = novo(); d.rounded_rectangle((10, 10, 54, 54), 8, fill=cor("#ffffff")); desenhos["stop"] = im
+    im, d = novo()
+    d.polygon([(12, 4), (40, 4), (54, 18), (54, 60), (12, 60)], fill=cor(TEMA["texto"]))
+    for y in (26, 36, 46):
+        d.line((20, y, 46, y), fill=cor(TEMA["trilho"]), width=5)
+    desenhos["doc"] = im
+    im, d = novo()
+    for x, h, c in ((8, 26, TEMA["ciano"]), (26, 44, TEMA["magenta"]), (44, 34, TEMA["vermelho"])):
+        d.rectangle((x, 58 - h, x + 12, 58), fill=cor(c))
+    desenhos["grafico"] = im
+    im, d = novo()
+    d.polygon([(4, 14), (24, 14), (30, 20), (60, 20), (60, 54), (4, 54)], fill=cor(TEMA["ambar"]))
+    desenhos["pasta"] = im
+    im, d = novo()
+    d.line((14, 14, 50, 50), fill=cor(TEMA["vermelho"]), width=10)
+    d.line((50, 14, 14, 50), fill=cor(TEMA["vermelho"]), width=10)
+    desenhos["fechar"] = im
+    raiz._icones = {k: ImageTk.PhotoImage(v.resize((T, T), Image.LANCZOS)) for k, v in desenhos.items()}
+    return raiz._icones
 
 
 def aplicar_tema(raiz):
@@ -1473,16 +1513,17 @@ def aplicar_tema(raiz):
     st.configure("TNotebook", background=T["fundo"], borderwidth=0, tabmargins=(12, 0, 12, 0))
     st.configure("TNotebook.Tab", background=T["fundo"], foreground=T["apagado"], padding=(18, 8), borderwidth=0,
                  font=("Bahnschrift SemiBold", 10), lightcolor=T["fundo"], bordercolor=T["fundo"])
-    st.map("TNotebook.Tab", background=[("selected", T["painel"]), ("active", "#141f36")],
-           foreground=[("selected", T["ciano"]), ("active", T["texto"])],
+    st.map("TNotebook.Tab", background=[("selected", T["painel"]), ("active", "#1a1826")],
+           foreground=[("selected", T["vermelho"]), ("active", T["texto"])],
            lightcolor=[("selected", T["painel"])], bordercolor=[("selected", T["painel"])])
 
     st.configure("TButton", background=T["trilho"], foreground=T["texto"], bordercolor=T["borda"],
                  lightcolor=T["trilho"], darkcolor=T["trilho"], padding=(12, 6), font=("Bahnschrift", 10))
-    st.map("TButton", background=[("disabled", T["campo"]), ("pressed", T["borda"]), ("active", "#24345a")],
-           foreground=[("disabled", T["fraco"])], lightcolor=[("active", "#24345a")], darkcolor=[("active", "#24345a")])
-    for nome, cor, escuro, claro, txt in (("Destaque", T["ciano"], "#0ea5c4", "#67e8f9", "#05232b"),
-                                          ("Gravando", T["rosa"], "#e11d48", "#fda4af", "#2a0710")):
+    st.map("TButton", background=[("disabled", T["campo"]), ("pressed", T["borda"]), ("active", "#332d48")],
+           foreground=[("disabled", T["fraco"])], lightcolor=[("active", "#332d48")], darkcolor=[("active", "#332d48")],
+           bordercolor=[("active", T["magenta"])])
+    for nome, cor, escuro, claro, txt in (("Destaque", T["vermelho"], "#c8102e", "#ff5a70", "#ffffff"),
+                                          ("Gravando", T["magenta"], "#a21caf", "#e879f9", "#ffffff")):
         st.configure(f"{nome}.TButton", background=cor, foreground=txt, bordercolor=cor, lightcolor=cor, darkcolor=cor,
                      padding=(12, 10), font=("Bahnschrift SemiBold", 12))
         st.map(f"{nome}.TButton", background=[("disabled", T["trilho"]), ("pressed", escuro), ("active", claro)],
@@ -1490,29 +1531,34 @@ def aplicar_tema(raiz):
                darkcolor=[("active", claro), ("disabled", T["trilho"])], bordercolor=[("disabled", T["trilho"])])
 
     st.configure("TCheckbutton", background=T["painel"], foreground=T["texto"], indicatorbackground=T["campo"],
-                 indicatorforeground=T["fundo"], upperbordercolor=T["borda"], lowerbordercolor=T["borda"], padding=(0, 3))
-    st.map("TCheckbutton", background=[("active", T["painel"])], foreground=[("active", T["ciano"])],
-           indicatorbackground=[("selected", T["ciano"]), ("active", T["trilho"])])
+                 indicatorforeground="#ffffff", upperbordercolor=T["apagado"], lowerbordercolor=T["apagado"],
+                 indicatorsize=15, indicatormargin=(0, 0, 8, 0), padding=(0, 4))
+    st.map("TCheckbutton", background=[("active", T["painel"])], foreground=[("active", T["vermelho"])],
+           indicatorbackground=[("selected", T["vermelho"]), ("active", T["trilho"])],
+           upperbordercolor=[("selected", T["vermelho"])], lowerbordercolor=[("selected", T["vermelho"])])
 
     st.configure("TEntry", fieldbackground=T["campo"], foreground=T["texto"], padding=7, bordercolor=T["borda"])
-    st.map("TEntry", bordercolor=[("focus", T["ciano"])], lightcolor=[("focus", T["ciano"])])
+    st.map("TEntry", bordercolor=[("focus", T["vermelho"])], lightcolor=[("focus", T["vermelho"])])
     st.configure("TCombobox", fieldbackground=T["campo"], background=T["trilho"], foreground=T["texto"],
-                 arrowcolor=T["ciano"], padding=4)
+                 arrowcolor=T["magenta"], padding=4, bordercolor=T["borda"])
     st.map("TCombobox", fieldbackground=[("readonly", T["campo"])], foreground=[("readonly", T["texto"])],
            selectbackground=[("readonly", T["campo"])], selectforeground=[("readonly", T["texto"])],
            background=[("active", T["borda"])])
     raiz.option_add("*TCombobox*Listbox.background", T["campo"])
     raiz.option_add("*TCombobox*Listbox.foreground", T["texto"])
     raiz.option_add("*TCombobox*Listbox.selectBackground", T["selecao"])
-    raiz.option_add("*TCombobox*Listbox.selectForeground", T["ciano"])
+    raiz.option_add("*TCombobox*Listbox.selectForeground", "#ffffff")
     raiz.option_add("*TCombobox*Listbox.font", ("Bahnschrift", 10))
 
     st.configure("Treeview", background=T["campo"], fieldbackground=T["campo"], foreground=T["texto"], rowheight=24,
                  bordercolor=T["borda"], font=("Bahnschrift", 10))
-    st.map("Treeview", background=[("selected", T["selecao"])], foreground=[("selected", T["ciano"])])
+    st.map("Treeview", background=[("selected", T["selecao"])], foreground=[("selected", "#ffffff")])
     st.configure("Treeview.Heading", background=T["fundo"], foreground=T["apagado"], bordercolor=T["borda"],
                  lightcolor=T["fundo"], darkcolor=T["fundo"], font=("Bahnschrift SemiBold", 9), padding=(6, 5))
-    st.map("Treeview.Heading", background=[("active", T["trilho"])], foreground=[("active", T["ciano"])])
+    st.map("Treeview.Heading", background=[("active", T["trilho"])], foreground=[("active", T["vermelho"])])
+    for nome in ("Vermelho", "Magenta", "Ciano", "Ambar"):
+        st.configure(f"Secao{nome}.TLabel", foreground=T[nome.lower()],
+                     font=("Bahnschrift SemiBold", 10))
 
     st.configure("Vertical.TScrollbar", background=T["trilho"], troughcolor=T["campo"], bordercolor=T["campo"],
                  lightcolor=T["trilho"], darkcolor=T["trilho"], arrowcolor=T["apagado"], gripcount=0)
@@ -1525,7 +1571,7 @@ def barra_de_titulo_escura(janela):
         janela.update_idletasks()
         hwnd = ctypes.windll.user32.GetParent(janela.winfo_id())
         dwm = ctypes.windll.dwmapi
-        for atributo, valor in ((20, 1), (35, 0x0020120B), (34, 0x004D3022)):  # modo escuro, cor da barra, cor da borda
+        for atributo, valor in ((20, 1), (35, 0x00100A0B), (34, 0x004628FF)):  # modo escuro, cor da barra, borda vermelha
             v = ctypes.c_int(valor)
             dwm.DwmSetWindowAttribute(hwnd, atributo, ctypes.byref(v), ctypes.sizeof(v))
     except Exception:
@@ -1542,7 +1588,7 @@ def abrir_janela():
         pass
     g = Gravador()
     raiz = tk.Tk()
-    raiz.title("Monitor de Jogos")
+    raiz.title("Benchinho Toy")
     raiz.geometry("600x780")
     raiz.minsize(560, 640)
     raiz.attributes("-topmost", False)
@@ -1553,8 +1599,15 @@ def abrir_janela():
             pass
     aplicar_tema(raiz)
     barra_de_titulo_escura(raiz)
+    try:
+        ic = criar_icones(raiz)
+    except Exception:
+        ic = {}
 
-    # cabeçalho: ícone + título + filete em degradê (igual ao overlay)
+    def com_icone(nome_ic):
+        return {"image": ic[nome_ic], "compound": "left"} if nome_ic in ic else {}
+
+    # cabeçalho: ícone + título + filete em degradê vermelho -> magenta
     cab = tk.Canvas(raiz, height=64, bg=TEMA["fundo"], highlightthickness=0)
     cab.pack(fill="x")
     try:
@@ -1563,11 +1616,13 @@ def abrir_janela():
         cab.create_image(16, 32, image=raiz._icone_cab, anchor="w")
     except Exception:
         pass
-    cab.create_text(62, 26, text="Monitor de Jogos", anchor="w", fill=TEMA["texto"], font=("Bahnschrift SemiBold", 16))
-    cab.create_text(62, 46, text="FPS · frametime · recursos", anchor="w", fill=TEMA["fraco"], font=("Bahnschrift", 9))
-    for i in range(30):
-        x = 62 + 150 * i / 30
-        cab.create_line(x, 58, x + 6, 58, width=2, fill=Overlay._mistura(TEMA["ciano"], TEMA["violeta"], i / 29))
+    cab.create_text(62, 25, text="BENCHINHO TOY", anchor="w", fill=TEMA["texto"], font=("Bahnschrift SemiBold", 17))
+    cab.create_text(62, 46, text="FPS  ·  frametime  ·  recursos", anchor="w", fill=TEMA["apagado"], font=("Bahnschrift", 9))
+    for i in range(40):  # filete com corte diagonal no fim
+        x = 62 + 190 * i / 40
+        cab.create_line(x, 59, x + 6, 59, width=3, fill=Overlay._mistura(TEMA["vermelho"], TEMA["magenta"], i / 39))
+    cab.create_polygon(258, 61, 264, 61, 272, 53, 266, 53, fill=TEMA["magenta"], outline="")
+    cab.create_polygon(270, 61, 276, 61, 284, 53, 278, 53, fill=TEMA["vermelho"], outline="")
 
     abas = ttk.Notebook(raiz)
     abas.pack(fill="both", expand=True)
@@ -1577,8 +1632,14 @@ def abrir_janela():
     abas.add(aba_consumo, text="  Consumo  ")
     montar_aba_consumo(aba_consumo, raiz, messagebox)
 
-    ttk.Label(quadro, text="NOME DO TESTE  (ex.: Tekken 8 - FORESEE)", style="Apagado.TLabel",
-              font=("Bahnschrift SemiBold", 9)).pack(anchor="w")
+    def secao(pai, texto, estilo, dica="", **pack):
+        linha = ttk.Frame(pai)
+        linha.pack(fill="x", **pack)
+        ttk.Label(linha, text="▍" + texto, style=estilo).pack(side="left")
+        if dica:
+            ttk.Label(linha, text="  " + dica, style="Apagado.TLabel", font=("Bahnschrift", 9)).pack(side="left", pady=(1, 0))
+
+    secao(quadro, "NOME DO TESTE", "SecaoVermelho.TLabel", "ex.: Tekken 8 - FORESEE")
     nome = tk.StringVar(value="")
     ttk.Entry(quadro, textvariable=nome, font=("Bahnschrift", 11)).pack(fill="x", pady=(4, 12))
 
@@ -1588,11 +1649,12 @@ def abrir_janela():
     info_txt = tk.StringVar(value="Parado. Ctrl+Alt+F10 inicia/para de dentro do jogo.")
     ttk.Label(quadro, textvariable=info_txt, justify="left", style="Mono.TLabel").pack(anchor="w", pady=(2, 12))
 
-    bt = ttk.Button(quadro, text="▶  Iniciar gravação", style="Destaque.TButton", cursor="hand2")
+    bt = ttk.Button(quadro, text="  Iniciar gravação", style="Destaque.TButton", cursor="hand2", **com_icone("play"))
     bt.pack(fill="x")
+    secao(quadro, "OPÇÕES E OVERLAY", "SecaoMagenta.TLabel", pady=(14, 2))
     abrir_sozinho = tk.BooleanVar(value=False)
     ttk.Checkbutton(quadro, text="Abrir o relatório sozinho ao parar (rouba o foco do jogo)",
-                    variable=abrir_sozinho).pack(anchor="w", pady=(8, 0))
+                    variable=abrir_sozinho).pack(anchor="w")
     topo = tk.BooleanVar(value=False)
     ttk.Checkbutton(quadro, text="Janela sempre por cima", variable=topo,
                     command=lambda: raiz.attributes("-topmost", topo.get())).pack(anchor="w")
@@ -1621,13 +1683,12 @@ def abrir_janela():
     ttk.Label(linha_ov, textvariable=ov_atalho_txt, style="Apagado.TLabel").pack(side="left")
 
     # lista das sessões: clique duplo abre o relatório
-    ttk.Label(quadro, text="SESSÕES GRAVADAS  (clique duplo para abrir o relatório)", style="Apagado.TLabel",
-              font=("Bahnschrift SemiBold", 9)).pack(anchor="w", pady=(14, 4))
+    secao(quadro, "SESSÕES GRAVADAS", "SecaoCiano.TLabel", "clique duplo abre o relatório", pady=(14, 4))
     caixa = ttk.Frame(quadro)
     caixa.pack(fill="both", expand=True)
     lista = tk.Listbox(caixa, height=9, font=("Consolas", 10), activestyle="none", bg=TEMA["campo"], fg=TEMA["texto"],
-                       selectbackground=TEMA["selecao"], selectforeground=TEMA["ciano"], highlightthickness=1,
-                       highlightbackground=TEMA["borda"], highlightcolor=TEMA["borda"], bd=0, relief="flat")
+                       selectbackground=TEMA["selecao"], selectforeground="#ffffff", highlightthickness=1,
+                       highlightbackground=TEMA["borda"], highlightcolor=TEMA["magenta"], bd=0, relief="flat")
     rolagem = ttk.Scrollbar(caixa, orient="vertical", command=lista.yview)
     lista.config(yscrollcommand=rolagem.set)
     lista.pack(side="left", fill="both", expand=True)
@@ -1653,7 +1714,11 @@ def abrir_janela():
                 continue
             quando = r.get("inicio", "")[5:16].replace("T", " ").replace("-", "/")
             fps = f"{r['fps_medio']:.0f} FPS" if r.get("fps_medio") else "sem FPS"
-            lista.insert("end", f"{quando}  {r.get('nome', '')[:28]:<28} {fps:>8}")
+            lista.insert("end", f" {quando}  {r.get('nome', '')[:28]:<28} {fps:>8}")
+            i = lista.size() - 1
+            f = r.get("fps_medio")
+            lista.itemconfig(i, fg=overlay._cor_fps(f) if f else TEMA["fraco"],
+                             bg=TEMA["campo"] if i % 2 == 0 else "#15131e")
             pastas_lista.append(p.parent)
 
     def abrir_selecionada(_evento=None):
@@ -1663,12 +1728,15 @@ def abrir_janela():
 
     lista.bind("<Double-Button-1>", abrir_selecionada)
     lista.bind("<Return>", abrir_selecionada)
-    ttk.Button(acoes, text="Abrir selecionada", command=abrir_selecionada).pack(side="left", fill="x", expand=True)
-    ttk.Button(acoes, text="Comparativo", command=lambda: _abrir(SESSOES / "comparativo.html")).pack(side="left", padx=(6, 0))
-    ttk.Button(acoes, text="Pasta", command=lambda: os.startfile(SESSOES)).pack(side="left", padx=(6, 0))
+    ttk.Button(acoes, text="  Abrir selecionada", command=abrir_selecionada, cursor="hand2",
+               **com_icone("doc")).pack(side="left", fill="x", expand=True)
+    ttk.Button(acoes, text="  Comparativo", command=lambda: _abrir(SESSOES / "comparativo.html"), cursor="hand2",
+               **com_icone("grafico")).pack(side="left", padx=(6, 0))
+    ttk.Button(acoes, text="  Pasta", command=lambda: os.startfile(SESSOES), cursor="hand2",
+               **com_icone("pasta")).pack(side="left", padx=(6, 0))
 
     def terminou(rel, erro):
-        bt.config(text="▶  Iniciar gravação", state="normal", style="Destaque.TButton")
+        bt.config(text="  Iniciar gravação", state="normal", style="Destaque.TButton", **com_icone("play"))
         fps_txt.set("— FPS")
         fps_lbl.configure(foreground=TEMA["apagado"])
         atualizar_lista()
@@ -1719,10 +1787,11 @@ def abrir_janela():
             return  # ainda gerando o relatório anterior
         if not g.ativo:
             g.iniciar(nome.get())
-            bt.config(text="■  Parar e gerar relatório", style="Gravando.TButton")
+            bt.config(text="  Parar e gerar relatório", style="Gravando.TButton", **com_icone("stop"))
             bipe("inicio")
         else:
-            bt.config(text="…  gerando relatório (pode continuar jogando)", state="disabled", style="Destaque.TButton")
+            bt.config(text="…  gerando relatório (pode continuar jogando)", state="disabled", style="Destaque.TButton",
+                      image="")
             bipe("fim")
             threading.Thread(target=parar_em_segundo_plano, daemon=True).start()
 

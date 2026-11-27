@@ -3,7 +3,9 @@
 Monitor de FPS e recursos para jogos no Windows, com overlay por cima do jogo e relatórios em HTML.
 Feito para descobrir o que trava o jogo de verdade: GPU, CPU, RAM cheia, paginação ou disco.
 
-![ícone](icone.png)
+<img src="icone.png" width="120" alt="ícone do Benchinho Toy">
+
+Visual escuro com destaques em vermelho e magenta (inspirado no estilo gamer "Strix", sem usar marcas).
 
 ## O que ele faz
 
@@ -38,6 +40,6 @@ As sessões ficam em `sessoes\`, cada uma com `relatorio.html`, `frames.csv` e `
 |---|---|
 | `monitor_jogos.py` | app (janela, gravação, overlay, relatórios) |
 | `config_jogos.py` | leitura das configurações gráficas de cada jogo |
-| `gerar_icone.py` | gera `icone.ico` / `icone.png` |
+| `gerar_icone.py` | gera opções de ícone (`python gerar_icone.py`) e instala uma (`python gerar_icone.py D`) |
 
 Requer Windows 10/11. As leituras de GPU usam `nvidia-smi` (placas NVIDIA).

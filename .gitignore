@@ -7,6 +7,10 @@ bin/
 # atalho do Windows (tem caminhos da máquina)
 *.lnk
 
+# opções de ícone geradas por gerar_icone.py (o escolhido é o icone.png)
+icone_?.png
+previa_icones.png
+
 __pycache__/
 *.pyc
 *.log
