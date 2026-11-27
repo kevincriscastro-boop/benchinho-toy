@@ -1,0 +1,12 @@
+# sessões gravadas (dados pessoais / resultados locais)
+sessoes/
+
+# PresentMon é baixado à parte (ver README)
+bin/
+
+# atalho do Windows (tem caminhos da máquina)
+*.lnk
+
+__pycache__/
+*.pyc
+*.log
